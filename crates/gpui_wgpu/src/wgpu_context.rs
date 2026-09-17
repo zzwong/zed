@@ -286,10 +286,23 @@ impl WgpuContext {
         ))
     }
 
+    /// The backend sets to try, in order, when a window creates the first GPU context.
+    ///
+    /// Vulkan is tried alone first: a `VULKAN | GL` instance makes wgpu initialise EGL to
+    /// enumerate a GL adapter, loading Mesa's GL stack (`libEGL`, `libgallium`, `libLLVM`,
+    /// `libgbm`) into a process that never selects it.
     #[cfg(not(target_family = "wasm"))]
-    pub fn instance(display: Box<dyn wgpu::wgt::WgpuHasDisplayHandle>) -> wgpu::Instance {
+    pub(crate) fn backend_candidates() -> &'static [wgpu::Backends] {
+        &[wgpu::Backends::VULKAN, wgpu::Backends::GL]
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub(crate) fn instance_with_backends(
+        display: Box<dyn wgpu::wgt::WgpuHasDisplayHandle>,
+        backends: wgpu::Backends,
+    ) -> wgpu::Instance {
         wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::VULKAN | wgpu::Backends::GL,
+            backends,
             flags: wgpu::InstanceFlags::default(),
             backend_options: wgpu::BackendOptions::default(),
             memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
